@@ -4,8 +4,7 @@ A retro Mario-style 2D side-scrolling platformer that doubles as an interactive 
 
 Built entirely with **vanilla HTML5, CSS3, and JavaScript** — no frameworks, no build tools, no dependencies. Just one self-contained `index.html` file.
 
-**[▶️ Play the live game here
-https://ayushverma30112007-crypto.github.io/ayush-portfolio-game/](#)** <!-- replace # with your GitHub Pages URL once deployed -->
+**[▶️ https://ayushverma30112007-crypto.github.io/ayush-portfolio-game/](#)** <!-- replace # with your GitHub Pages URL once deployed -->
 
 ---
 
