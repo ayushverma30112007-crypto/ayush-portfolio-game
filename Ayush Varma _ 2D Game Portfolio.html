@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<!-- saved from url=(0046)file:///C:/Users/Ayush/Downloads/index_12.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ayush Varma | 2D Game Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link href="./Ayush Varma _ 2D Game Portfolio_files/css2" rel="stylesheet">
+<style>
+  /* ======================= ROOT / RESET ======================= */
+  :root{
+    --sky-top:#4EC0FF;
+    --sky-bottom:#8FE3FF;
+    --panel-brown:#7a4a2b;
+    --panel-brown-dark:#5c3620;
+    --coin-gold:#ffd23f;
+    --accent-pink:#ff5da2;
+    --accent-purple:#a45bff;
+    --accent-green:#3ddc84;
+    --ink:#1c1330;
+    --cream:#fff6e0;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{
+    margin:0; padding:0; width:100%; height:100%; overflow:hidden;
+    background:#000;
+    font-family:'Press Start 2P', cursive;
+    color:var(--cream);
+    image-rendering:pixelated;
+  }
+  #gameCanvas{
+    display:block;
+    width:100vw; height:100vh;
+    background:linear-gradient(var(--sky-top), var(--sky-bottom));
+    cursor:pointer;
+  }
+
+  /* ======================= SCANLINE / CRT VIBE ======================= */
+  #crt-overlay{
+    position:fixed; inset:0; pointer-events:none; z-index:50;
+    background:repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.10) 0px,
+      rgba(0,0,0,0.10) 1px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,0) 3px
+    );
+    mix-blend-mode:multiply;
+  }
+  #vignette{
+    position:fixed; inset:0; pointer-events:none; z-index:49;
+    box-shadow: inset 0 0 18vw rgba(0,0,0,0.55);
+  }
+
+  /* ======================= HUD ======================= */
+  #hud{
+    position:fixed; top:14px; left:14px; z-index:20;
+    display:flex; flex-direction:column; gap:8px;
+    pointer-events:none;
+    text-shadow:3px 3px 0 #000;
+  }
+  #hud .coin-counter{
+    background:rgba(20,10,30,0.55);
+    border:3px solid #ffd23f;
+    border-radius:6px;
+    padding:8px 12px;
+    font-size:14px;
+    display:flex; align-items:center; gap:8px;
+    box-shadow:0 0 0 2px #000 inset;
+  }
+  #hud .coin-icon{
+    width:16px; height:16px; background:var(--coin-gold);
+    border:2px solid #a97400; border-radius:50%;
+    box-shadow:inset -2px -2px 0 #a97400;
+    display:inline-block;
+  }
+  #hud .controls-hint{
+    background:rgba(20,10,30,0.4);
+    border:2px dashed rgba(255,255,255,0.4);
+    border-radius:6px;
+    padding:6px 10px;
+    font-size:8px;
+    line-height:1.6;
+    max-width:280px;
+  }
+  #progress-wrap{
+    position:fixed; top:14px; right:14px; z-index:20;
+    background:rgba(20,10,30,0.55);
+    border:3px solid var(--accent-pink);
+    border-radius:6px;
+    padding:8px 10px;
+    text-shadow:2px 2px 0 #000;
+    font-size:8px;
+    pointer-events:none;
+    width:200px;
+  }
+  #progress-bar-bg{
+    margin-top:6px;
+    width:100%; height:10px;
+    background:#3a2050;
+    border:2px solid #000;
+    border-radius:4px;
+    overflow:hidden;
+  }
+  #progress-bar-fill{
+    height:100%; width:0%;
+    background:linear-gradient(90deg, var(--accent-green), var(--coin-gold));
+    transition:width .2s linear;
+  }
+
+  /* ======================= BILLBOARD INFO PANEL ======================= */
+  #billboard-panel{
+    position:fixed;
+    top:90px; left:50%;
+    transform:translate(-50%,-16px);
+    width:min(680px, 90vw);
+    max-height:62vh;
+    overflow-y:auto;
+    background:linear-gradient(180deg,#3a2416,#231407);
+    border:6px solid var(--panel-brown);
+    border-radius:10px;
+    box-shadow:0 10px 0 rgba(0,0,0,0.4), 0 0 0 4px #1a0d05 inset;
+    padding:18px 22px;
+    z-index:30;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+  }
+  #billboard-panel.visible{
+    opacity:1;
+    transform:translate(-50%,0);
+    pointer-events:auto;
+  }
+  #billboard-panel::-webkit-scrollbar{ width:10px; }
+  #billboard-panel::-webkit-scrollbar-thumb{ background:var(--accent-pink); border-radius:6px; }
+  #billboard-panel::-webkit-scrollbar-track{ background:#1a0d05; }
+
+  #billboard-panel h2{
+    font-size:14px; margin:0 0 6px 0; color:var(--coin-gold);
+    text-shadow:2px 2px 0 #000;
+    letter-spacing:1px;
+  }
+  #billboard-panel h3{
+    font-size:9px; margin:0 0 14px 0; color:var(--accent-green);
+    text-shadow:1px 1px 0 #000;
+    letter-spacing:0.5px;
+  }
+  #billboard-panel p, #billboard-panel li{
+    font-size:9px; line-height:1.9; color:var(--cream);
+  }
+  #billboard-panel ul{ margin:0; padding-left:18px; }
+  #billboard-panel li{ margin-bottom:10px; }
+
+  .skill-groups{ display:flex; flex-direction:column; gap:14px; }
+  .skill-group-title{ font-size:9px; color:var(--accent-pink); margin-bottom:8px; }
+  .badge-row{ display:flex; flex-wrap:wrap; gap:8px; }
+  .badge{
+    font-size:8px;
+    background:var(--accent-purple);
+    color:#fff;
+    padding:7px 9px;
+    border-radius:5px;
+    border:2px solid #6d2fdc;
+    box-shadow:2px 2px 0 #000;
+    white-space:nowrap;
+  }
+
+  .project-cards{ display:flex; flex-direction:column; gap:14px; }
+  .project-card{
+    background:rgba(255,255,255,0.06);
+    border:2px solid var(--accent-green);
+    border-radius:6px;
+    padding:10px 12px;
+  }
+  .project-card h4{ font-size:9px; color:var(--coin-gold); margin:0 0 8px 0; }
+  .project-card p{ margin:0; font-size:8.5px; }
+
+  .contact-row{ display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+  .contact-btn{
+    display:flex; align-items:center; gap:10px;
+    font-family:'Press Start 2P', cursive;
+    font-size:9px;
+    color:#fff;
+    background:var(--accent-pink);
+    border:3px solid #b3005c;
+    border-radius:6px;
+    padding:10px 12px;
+    text-decoration:none;
+    box-shadow:3px 3px 0 #000;
+    transition:transform .1s ease;
+  }
+  .contact-btn:hover{ transform:translate(-2px,-2px); }
+  .contact-btn.git{ background:var(--ink); border-color:#000; }
+  .contact-btn.li{ background:#0a66c2; border-color:#08417a; }
+  .status-pill{
+    margin-top:12px;
+    display:inline-block;
+    background:rgba(61,220,132,0.18);
+    border:2px solid var(--accent-green);
+    color:var(--accent-green);
+    padding:8px 10px;
+    border-radius:6px;
+    font-size:8px;
+    line-height:1.7;
+  }
+
+  /* ======================= OVERLAYS (START / GAMEOVER / VICTORY) ======================= */
+  .overlay{
+    position:fixed; inset:0; z-index:60;
+    display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 50% 40%, rgba(40,10,60,0.92), rgba(5,0,15,0.97));
+    text-align:center;
+    padding:20px;
+  }
+  .overlay.hidden{ display:none; }
+
+  /* Start screen uses a lighter, airy sky palette instead of the dark arcade backdrop. */
+  #start-overlay{
+    background:linear-gradient(160deg, #eaf7ff 0%, #dcefff 45%, #fff2d6 100%);
+  }
+  #start-overlay .glow-title{
+    color:#ff5da2;
+    text-shadow:
+      0 0 6px #ffd9ec,
+      0 0 16px #ffd23f,
+      3px 3px 0 rgba(28,19,48,0.22);
+  }
+  #start-overlay .sub-text{ color:var(--ink); opacity:1; }
+  #start-overlay .instructions{
+    background:rgba(255,255,255,0.6);
+    border:2px dashed rgba(28,19,48,0.35);
+    color:var(--ink);
+  }
+
+  .overlay-box{
+    max-width:640px;
+    width:100%;
+  }
+
+  .glow-title{
+    font-size:clamp(18px, 4.4vw, 34px);
+    color:var(--coin-gold);
+    text-shadow:
+      0 0 8px #ffd23f,
+      0 0 18px #ff5da2,
+      4px 4px 0 #000;
+    animation: pulseTitle 1.6s ease-in-out infinite;
+    line-height:1.6;
+    margin-bottom:22px;
+    letter-spacing:1px;
+  }
+  @keyframes pulseTitle{
+    0%,100%{ transform:scale(1); }
+    50%{ transform:scale(1.045); }
+  }
+
+  .sub-text{
+    font-size:10px;
+    color:var(--cream);
+    line-height:2.2;
+    margin-bottom:26px;
+    opacity:0.9;
+  }
+  .instructions{
+    display:inline-block;
+    text-align:left;
+    background:rgba(255,255,255,0.06);
+    border:2px dashed rgba(255,255,255,0.35);
+    border-radius:8px;
+    padding:14px 18px;
+    font-size:9px;
+    line-height:2.3;
+    margin-bottom:28px;
+  }
+
+  .pixel-btn{
+    font-family:'Press Start 2P', cursive;
+    font-size:13px;
+    color:#1c1330;
+    background:var(--coin-gold);
+    border:none;
+    border-bottom:6px solid #a97400;
+    border-radius:4px;
+    padding:16px 26px;
+    cursor:pointer;
+    letter-spacing:1px;
+    box-shadow:0 0 0 3px #000, 0 0 22px rgba(255,210,63,0.5);
+    animation:pulseBtn 1.3s ease-in-out infinite;
+    margin:6px;
+  }
+  .pixel-btn:hover{ filter:brightness(1.08); }
+  .pixel-btn:active{
+    transform:translateY(4px);
+    border-bottom-width:2px;
+  }
+  @keyframes pulseBtn{
+    0%,100%{ transform:scale(1); }
+    50%{ transform:scale(1.05); }
+  }
+  .pixel-btn.secondary{
+    background:var(--accent-pink);
+    border-bottom-color:#b3005c;
+    box-shadow:0 0 0 3px #000, 0 0 22px rgba(255,93,162,0.5);
+    animation:none;
+  }
+  .pixel-btn.ghost{
+    background:transparent;
+    color:var(--cream);
+    border:2px solid var(--cream);
+    border-bottom:2px solid var(--cream);
+    box-shadow:none;
+    font-size:9px;
+    animation:none;
+    padding:10px 16px;
+  }
+
+  #gameover-box .glow-title{
+    color:#ff4d4d;
+    text-shadow:0 0 8px #ff4d4d, 0 0 18px #ff0000, 4px 4px 0 #000;
+  }
+  #victory-box .glow-title{
+    color:var(--accent-green);
+    text-shadow:0 0 8px #3ddc84, 0 0 18px #22ff9c, 4px 4px 0 #000;
+  }
+  .stat-line{ font-size:11px; margin:10px 0; color:var(--coin-gold); }
+
+  /* ======================= CONFETTI ======================= */
+  #confetti-container{
+    position:fixed; inset:0; pointer-events:none; z-index:65; overflow:hidden;
+  }
+  .confetti-piece{
+    position:absolute; top:-20px;
+    width:10px; height:16px;
+    opacity:0.95;
+    animation-name:confettiFall;
+    animation-timing-function:linear;
+    animation-fill-mode:forwards;
+  }
+  @keyframes confettiFall{
+    0%{ transform:translateY(0) rotate(0deg); }
+    100%{ transform:translateY(110vh) rotate(720deg); }
+  }
+
+  /* ======================= TOUCH CONTROLS ======================= */
+  #touch-controls{
+    display:none;
+    position:fixed; bottom:0; left:0; right:0; z-index:25;
+    justify-content:space-between;
+    align-items:flex-end;
+    padding:0 18px 22px 18px;
+    pointer-events:none;
+  }
+  @media (pointer:coarse){
+    #touch-controls{ display:flex; }
+  }
+  .touch-btn{
+    pointer-events:auto;
+    width:64px; height:64px;
+    border-radius:16px;
+    background:rgba(255,255,255,0.18);
+    border:3px solid rgba(255,255,255,0.55);
+    color:#fff;
+    font-size:22px;
+    display:flex; align-items:center; justify-content:center;
+    user-select:none;
+    backdrop-filter:blur(2px);
+  }
+  .touch-btn:active{ background:rgba(255,255,255,0.4); }
+  #dpad{ display:flex; gap:12px; }
+  #jump-btn{
+    width:82px; height:82px;
+    border-radius:50%;
+    background:rgba(255,210,63,0.35);
+    border-color:rgba(255,210,63,0.8);
+    font-size:12px;
+    text-align:center;
+    line-height:1.3;
+  }
+
+  /* ======================= MISC ======================= */
+  #brand-footer{
+    position:fixed; bottom:8px; left:50%; transform:translateX(-50%);
+    font-size:7px; color:rgba(255,255,255,0.35);
+    z-index:15; pointer-events:none;
+    letter-spacing:1px;
+  }
+  @media (pointer:coarse){ #brand-footer{ display:none; } }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="1528" height="732"></canvas>
+<div id="crt-overlay"></div>
+<div id="vignette"></div>
+
+<!-- ======================= HUD ======================= -->
+<div id="hud">
+  <div class="coin-counter"><span class="coin-icon"></span><span id="coin-count">COINS: 9</span></div>
+  <div class="controls-hint">
+    MOVE: ◄ ► / A D<br>
+    JUMP: ▲ / W / SPACE<br>
+    JUMP AGAIN IN AIR: DOUBLE JUMP
+  </div>
+</div>
+
+<div id="progress-wrap">
+  ROUTE PROGRESS
+  <div id="progress-bar-bg"><div id="progress-bar-fill" style="width: 87.0129%;"></div></div>
+</div>
+
+<!-- ======================= BILLBOARD PANEL (populated by JS) ======================= -->
+<div id="billboard-panel" class="">
+    <h2>CONNECT &amp; COLLABORATE</h2>
+    <h3>Warp to the outside world</h3>
+    <div class="contact-row">
+      <a class="contact-btn" href="mailto:ayushverma30112007@gmail.com">✉️ Email — ayushverma30112007@gmail.com</a>
+      <a class="contact-btn li" href="https://www.linkedin.com/in/ayush-varma-227031382" target="_blank" rel="noopener">💼 LinkedIn Profile</a>
+      <a class="contact-btn git" href="https://github.com/ayushverma30112007-crypto" target="_blank" rel="noopener">🐙 GitHub — ayushverma30112007-crypto</a>
+    </div>
+    <div class="status-pill">🟢 OPEN TO: AI/ML Internships, Research Collaborations &amp; Open-Source Projects</div></div>
+
+<!-- ======================= TOUCH CONTROLS ======================= -->
+<div id="touch-controls">
+  <div id="dpad">
+    <div class="touch-btn" id="btn-left">◄</div>
+    <div class="touch-btn" id="btn-right">►</div>
+  </div>
+  <div class="touch-btn" id="jump-btn">JUMP</div>
+</div>
+
+<!-- ======================= START SCREEN ======================= -->
+<div class="overlay hidden" id="start-overlay">
+  <div class="overlay-box">
+    <div class="glow-title">AYUSH VARMA<br>2D GAME PORTFOLIO</div>
+    <div class="instructions">
+      ► RUN right through the world to explore the portfolio<br>
+      ► JUMP into ? BLOCKS from below for coins<br>
+      ► PRESS JUMP AGAIN mid-air for a DOUBLE JUMP<br>
+      ► COLLECT floating coins along the way<br>
+      ► DODGE the rolling slimes — one hit ends the run<br>
+      ► REACH the flagpole at the end to win!<br>
+      ► Stand near a sign board to read it
+    </div><br>
+    <button class="pixel-btn" id="start-btn">[ START GAME ]</button>
+  </div>
+</div>
+
+<!-- ======================= GAME OVER SCREEN ======================= -->
+<div class="overlay" id="gameover-overlay">
+  <div class="overlay-box" id="gameover-box">
+    <div class="glow-title">GAME OVER</div>
+    <div class="sub-text" id="gameover-reason">You bumped into a rolling hazard!</div>
+    <div class="stat-line" id="gameover-coins">COINS COLLECTED: 9</div>
+    <button class="pixel-btn" id="restart-btn">[ PLAY AGAIN ]</button>
+  </div>
+</div>
+
+<!-- ======================= VICTORY SCREEN ======================= -->
+<div class="overlay hidden" id="victory-overlay">
+  <div class="overlay-box" id="victory-box">
+    <div class="glow-title">RUN COMPLETE!</div>
+    <div class="sub-text">You reached the flagpole and explored the full portfolio.</div>
+    <div class="stat-line" id="victory-coins">COINS COLLECTED: 0</div>
+    <div>
+      <button class="pixel-btn secondary" id="victory-restart-btn">[ PLAY AGAIN ]</button>
+      <button class="pixel-btn" id="victory-contact-btn">[ CONTACT AYUSH ]</button>
+    </div>
+  </div>
+</div>
+
+<div id="confetti-container"></div>
+
+<div id="brand-footer">PRESS START 2P · CANVAS PORTFOLIO ENGINE</div>
+
+<script>
+/* =====================================================================================
+   AYUSH VARMA — 2D GAME PORTFOLIO — a single-file retro side-scrolling portfolio game.
+   Pure HTML5 Canvas + vanilla JS. No frameworks, no external game libraries.
+   ===================================================================================== */
+
+/* ----------------------------- CANVAS SETUP ----------------------------- */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  // Recompute ground level relative to new viewport height, keep a sensible minimum.
+  state.groundY = Math.max(340, canvas.height - 130);
+  // If the player already exists and was standing, keep them glued to the new ground.
+  if (player && player.onGround){
+    player.y = state.groundY - player.h;
+  }
+}
+window.addEventListener('resize', resizeCanvas);
+
+/* ----------------------------- GLOBAL STATE ----------------------------- */
+const state = {
+  mode: 'start',       // 'start' | 'playing' | 'gameover' | 'victory'
+  groundY: 520,
+  cameraX: 0,
+  coins: 0,
+  time: 0,
+  activeBoardId: null
+};
+
+const WORLD_WIDTH = 6400;
+const TILE = 32;
+
+const GRAVITY = 0.72;
+const MAX_FALL_SPEED = 16;
+const MOVE_ACCEL = 0.65;
+const MAX_SPEED = 5.4;
+const FRICTION = 0.80;
+const JUMP_VELOCITY = -15.2;
+
+/* ----------------------------- INPUT ----------------------------- */
+const keys = { left:false, right:false };
+let jumpKeyHeld = false; // tracks whether a jump key is currently held, for edge-detection
+
+window.addEventListener('keydown', (e)=>{
+  if (['ArrowLeft','KeyA'].includes(e.code)) keys.left = true;
+  if (['ArrowRight','KeyD'].includes(e.code)) keys.right = true;
+  if (['ArrowUp','KeyW','Space'].includes(e.code)){
+    e.preventDefault();
+    // Only fire a jump on the initial press, not on OS key-repeat while held.
+    if (!jumpKeyHeld){
+      jumpKeyHeld = true;
+      attemptJump();
+    }
+  }
+});
+window.addEventListener('keyup', (e)=>{
+  if (['ArrowLeft','KeyA'].includes(e.code)) keys.left = false;
+  if (['ArrowRight','KeyD'].includes(e.code)) keys.right = false;
+  if (['ArrowUp','KeyW','Space'].includes(e.code)) jumpKeyHeld = false;
+});
+
+// Touch controls — left/right are held flags, jump is a discrete tap action.
+function bindTouchButton(el, flagSetter){
+  const on = (e)=>{ e.preventDefault(); flagSetter(true); };
+  const off = (e)=>{ e.preventDefault(); flagSetter(false); };
+  el.addEventListener('touchstart', on, {passive:false});
+  el.addEventListener('touchend', off, {passive:false});
+  el.addEventListener('touchcancel', off, {passive:false});
+  el.addEventListener('mousedown', on);
+  el.addEventListener('mouseup', off);
+  el.addEventListener('mouseleave', off);
+}
+function bindTouchTap(el, fn){
+  const on = (e)=>{ e.preventDefault(); fn(); };
+  el.addEventListener('touchstart', on, {passive:false});
+  el.addEventListener('mousedown', on);
+}
+bindTouchButton(document.getElementById('btn-left'),  v=>keys.left = v);
+bindTouchButton(document.getElementById('btn-right'), v=>keys.right = v);
+bindTouchTap(document.getElementById('jump-btn'), ()=>attemptJump());
+
+/* ----------------------------- WORLD DATA ----------------------------- */
+
+// Ground is split into segments so we can carve out pits (gaps) to jump over.
+// Each segment: { x, w } sitting at groundY, extending far down.
+const groundSegments = [
+  { x: 0,    w: 1480 },
+  { x: 1580, w: 2560 },   // gap 1: 1480-1580 (100px pit)
+  { x: 4230, w: 1600 },   // gap 2: 4140-4230 (90px pit)
+  { x: 5900, w: 500  }
+];
+
+// A short ascending brick staircase leading up to the victory flagpole (visual + light platforming).
+const staircase = [
+  { x: 5920, offset: 0,  w: 64, h: 300 },
+  { x: 5984, offset: 40, w: 64, h: 300 },
+  { x: 6048, offset: 80, w: 64, h: 300 }
+];
+
+// Floating "?" mystery blocks. Height = offset above ground. Each holds one coin, hit once.
+const blocks = [
+  { x: 560,  offset: 190, w:48, h:48, hit:false },
+  { x: 616,  offset: 190, w:48, h:48, hit:false },
+  { x: 672,  offset: 190, w:48, h:48, hit:false },
+  { x: 1760, offset: 210, w:48, h:48, hit:false },
+  { x: 1816, offset: 210, w:48, h:48, hit:false },
+  { x: 3120, offset: 200, w:48, h:48, hit:false },
+  { x: 3176, offset: 200, w:48, h:48, hit:false },
+  { x: 3232, offset: 200, w:48, h:48, hit:false },
+  { x: 4520, offset: 190, w:48, h:48, hit:false },
+  { x: 4576, offset: 190, w:48, h:48, hit:false }
+];
+
+// Free-floating collectible coins (bounce animation, not from blocks).
+const coins = [];
+function seedCoins(){
+  const coinSpots = [
+    300, 340, 380, 900, 940, 980, 1300, 2100, 2140, 2180, 2600, 2640,
+    3550, 3900, 3940, 4700, 4740, 5100, 5150, 5400, 5450, 5600, 5650
+  ];
+  coinSpots.forEach((x,i)=>{
+    coins.push({ x, offset: 120 + (i%3)*22, r:12, collected:false, phase: Math.random()*Math.PI*2 });
+  });
+}
+seedCoins();
+
+// Rolling hazard slimes — patrol back and forth on the ground.
+const slimes = [
+  { x: 1050, minX: 980,  maxX: 1220, vx: 1.6, r:16, alive:true },
+  { x: 2450, minX: 2380, maxX: 2650, vx: 1.9, r:16, alive:true },
+  { x: 2950, minX: 2900, maxX: 3080, vx: 1.5, r:16, alive:true },
+  { x: 3750, minX: 3680, maxX: 3980, vx: 2.1, r:16, alive:true },
+  { x: 5300, minX: 5220, maxX: 5520, vx: 1.8, r:16, alive:true }
+];
+
+// Signboard/billboard trigger zones — canvas draws the post, DOM panel shows the content.
+const billboards = [
+  { id:'about', x: 780,  label:'ABOUT ME', color:'#ff5da2', icon:'👤' },
+  { id:'skills', x: 2020, label:'SKILLS', color:'#a45bff', icon:'🛠️' },
+  { id:'projects', x: 3480, label:'PROJECTS', color:'#3ddc84', icon:'💻' },
+  { id:'contact', x: 4900, label:'CONTACT', color:'#ffd23f', icon:'✉️' }
+];
+const BOARD_TRIGGER_RADIUS = 230;
+
+const flagpole = { x: 6180, h: 320 };
+
+/* ----------------------------- BILLBOARD CONTENT (HTML) ----------------------------- */
+const boardContent = {
+  about: `
+    <h2>AYUSH VARMA | INNOVATOR &amp; BUILDER</h2>
+    <h3>B.Tech CSE (2nd Year) • Aspiring Data Scientist &amp; AI Engineer</h3>
+    <ul>
+      <li>🚀 Passionate about building intelligent systems, LLM pipelines, and scalable software.</li>
+      <li>🧠 Exploring the intersection of Data Science, Machine Learning, and Interactive Experiences.</li>
+      <li>💡 Driven by curiosity: transforming complex ideas into production-grade reality.</li>
+    </ul>`,
+  skills: `
+    <h2>TECHNICAL ARSENAL</h2>
+    <h3>Skills collected along the way</h3>
+    <div class="skill-groups">
+      <div>
+        <div class="skill-group-title">LANGUAGES</div>
+        <div class="badge-row">
+          <span class="badge">Python</span><span class="badge">C</span>
+          <span class="badge">Java</span><span class="badge">JavaScript</span>
+          <span class="badge">SQL</span>
+        </div>
+      </div>
+      <div>
+        <div class="skill-group-title">AI / ML &amp; DATA</div>
+        <div class="badge-row">
+          <span class="badge">Machine Learning</span><span class="badge">RAG Pipelines</span>
+          <span class="badge">LLM Integrations</span><span class="badge">Data Analysis</span>
+        </div>
+      </div>
+      <div>
+        <div class="skill-group-title">WEB &amp; TOOLS</div>
+        <div class="badge-row">
+          <span class="badge">HTML5 / CSS3</span><span class="badge">Modern UI/UX</span>
+          <span class="badge">Git / GitHub</span><span class="badge">REST APIs</span>
+        </div>
+      </div>
+    </div>`,
+  projects: `
+    <h2>FEATURED PROJECTS</h2>
+    <h3>Boss-level builds</h3>
+    <div class="project-cards">
+      <div class="project-card">
+        <h4>🔎 RAG-Based AI Handbook Assistant</h4>
+        <p>Intelligent document retrieval and automated question-answering system using modern LLM APIs.</p>
+      </div>
+      <div class="project-card">
+        <h4>🧪 Deep M1ndz Exhibition Platform</h4>
+        <p>Team-led technical project showcased at tech symposiums, focusing on applied AI models.</p>
+      </div>
+      <div class="project-card">
+        <h4>🏦 FinTech UI/UX Experience</h4>
+        <p>Modern, user-centric banking and financial interface architecture.</p>
+      </div>
+    </div>`,
+  contact: `
+    <h2>CONNECT &amp; COLLABORATE</h2>
+    <h3>Warp to the outside world</h3>
+    <div class="contact-row">
+      <a class="contact-btn" href="mailto:ayushverma30112007@gmail.com">✉️ Email — ayushverma30112007@gmail.com</a>
+      <a class="contact-btn li" href="https://www.linkedin.com/in/ayush-varma-227031382" target="_blank" rel="noopener">💼 LinkedIn Profile</a>
+      <a class="contact-btn git" href="https://github.com/ayushverma30112007-crypto" target="_blank" rel="noopener">🐙 GitHub — ayushverma30112007-crypto</a>
+    </div>
+    <div class="status-pill">🟢 OPEN TO: AI/ML Internships, Research Collaborations &amp; Open-Source Projects</div>`
+};
+
+/* ----------------------------- PLAYER ----------------------------- */
+const MAX_JUMPS = 2; // ground jump + one mid-air double jump
+
+const player = {
+  x: 80, y: 0, w: 34, h: 46,
+  vx: 0, vy: 0,
+  onGround: false,
+  facing: 1,          // 1 = right, -1 = left
+  animTimer: 0,
+  animFrame: 0,
+  alive: true,
+  jumpsUsed: 0,        // how many jumps used since last touching ground
+  spinTimer: 0,        // brief spin flair shown on the double jump
+  spinDuration: 16
+};
+
+function resetPlayer(){
+  player.x = 80;
+  player.y = state.groundY - player.h;
+  player.vx = 0; player.vy = 0;
+  player.onGround = false;
+  player.facing = 1;
+  player.alive = true;
+  player.jumpsUsed = 0;
+  player.spinTimer = 0;
+}
+
+// Edge-triggered jump: called once per key-press/tap, not every frame.
+// Allows a normal jump from the ground, and exactly one extra "double jump" while airborne.
+function attemptJump(){
+  if (state.mode !== 'playing') return;
+  if (player.jumpsUsed < MAX_JUMPS){
+    player.vy = JUMP_VELOCITY;
+    player.onGround = false;
+    player.jumpsUsed++;
+    if (player.jumpsUsed === 2){
+      player.spinTimer = player.spinDuration; // trigger the double-jump spin flourish
+    }
+  }
+}
+
+/* ----------------------------- COLLISION HELPERS ----------------------------- */
+function rectsOverlap(ax,ay,aw,ah, bx,by,bw,bh){
+  return ax < bx+bw && ax+aw > bx && ay < by+bh && ay+ah > by;
+}
+
+// Build the list of solid rectangles for this frame (ground + staircase + unhit blocks that act as platforms).
+function getSolids(){
+  const solids = [];
+  groundSegments.forEach(seg=>{
+    solids.push({ x: seg.x, y: state.groundY, w: seg.w, h: 600, type:'ground' });
+  });
+  staircase.forEach(s=>{
+    solids.push({ x:s.x, y: state.groundY - s.offset - s.h + 300, w:s.w, h:300, type:'ground' });
+  });
+  blocks.forEach(b=>{
+    solids.push({ x:b.x, y: state.groundY - b.offset - b.h, w:b.w, h:b.h, type:'block', ref:b });
+  });
+  return solids;
+}
+
+/* ----------------------------- PHYSICS / UPDATE ----------------------------- */
+function updatePlayer(){
+  // --- Horizontal input & acceleration ---
+  if (keys.left){ player.vx -= MOVE_ACCEL; player.facing = -1; }
+  if (keys.right){ player.vx += MOVE_ACCEL; player.facing = 1; }
+  if (!keys.left && !keys.right){ player.vx *= FRICTION; if (Math.abs(player.vx) < 0.05) player.vx = 0; }
+  player.vx = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, player.vx));
+
+  // --- Gravity ---
+  player.vy += GRAVITY;
+  if (player.vy > MAX_FALL_SPEED) player.vy = MAX_FALL_SPEED;
+
+  const solids = getSolids();
+
+  // --- Move X, resolve X collisions ---
+  player.x += player.vx;
+  player.x = Math.max(0, Math.min(WORLD_WIDTH - player.w, player.x));
+  for (const s of solids){
+    if (rectsOverlap(player.x, player.y, player.w, player.h, s.x, s.y, s.w, s.h)){
+      if (player.vx > 0) player.x = s.x - player.w;
+      else if (player.vx < 0) player.x = s.x + s.w;
+      player.vx = 0;
+    }
+  }
+
+  // --- Move Y, resolve Y collisions ---
+  player.onGround = false;
+  player.y += player.vy;
+  for (const s of solids){
+    if (rectsOverlap(player.x, player.y, player.w, player.h, s.x, s.y, s.w, s.h)){
+      if (player.vy > 0){ // falling onto top of solid
+        player.y = s.y - player.h;
+        player.vy = 0;
+        player.onGround = true;
+        player.jumpsUsed = 0; // touching ground refreshes both jumps
+      } else if (player.vy < 0){ // hitting bottom of solid (jumping up)
+        player.y = s.y + s.h;
+        player.vy = 0;
+        if (s.type === 'block' && !s.ref.hit){
+          triggerBlockHit(s.ref);
+        }
+      }
+    }
+  }
+
+  // --- Fell into a pit / off the world ---
+  if (player.y > state.groundY + 260){
+    endGame('You fell into the gap!');
+    return;
+  }
+
+  // --- Double-jump spin flourish countdown ---
+  if (player.spinTimer > 0) player.spinTimer--;
+
+  // --- Animation timer for walk-cycle ---
+  if (Math.abs(player.vx) > 0.4 && player.onGround){
+    player.animTimer += Math.abs(player.vx);
+    if (player.animTimer > 14){ player.animTimer = 0; player.animFrame = (player.animFrame+1)%2; }
+  } else if (player.onGround){
+    player.animFrame = 0;
+  }
+
+  // --- Camera follows player, clamped to world bounds ---
+  const targetCam = player.x + player.w/2 - canvas.width/2;
+  state.cameraX += (targetCam - state.cameraX) * 0.14; // smooth easing
+  state.cameraX = Math.max(0, Math.min(WORLD_WIDTH - canvas.width, state.cameraX));
+
+  // --- Hazard collisions ---
+  for (const sl of slimes){
+    if (!sl.alive) continue;
+    const dx = (player.x + player.w/2) - sl.x;
+    const dy = (player.y + player.h/2) - (state.groundY - sl.r);
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < sl.r + Math.min(player.w,player.h)/2 - 6){
+      endGame('You bumped into a rolling hazard!');
+      return;
+    }
+  }
+
+  // --- Coin pickups ---
+  coins.forEach(c=>{
+    if (c.collected) return;
+    const cy = state.groundY - c.offset - 10 + Math.sin(state.time*0.006 + c.phase)*6;
+    const dx = (player.x+player.w/2) - c.x;
+    const dy = (player.y+player.h/2) - cy;
+    if (Math.sqrt(dx*dx+dy*dy) < c.r + 20){
+      c.collected = true;
+      state.coins++;
+      updateCoinHud();
+    }
+  });
+
+  // --- Flagpole (victory) ---
+  if (player.x + player.w > flagpole.x && player.x < flagpole.x + 20){
+    winGame();
+  }
+
+  // --- Billboard proximity → show/hide info panel ---
+  updateBillboardPanel();
+
+  // --- HUD progress bar ---
+  const pct = Math.max(0, Math.min(100, (player.x / (flagpole.x)) * 100));
+  document.getElementById('progress-bar-fill').style.width = pct + '%';
+}
+
+function triggerBlockHit(block){
+  block.hit = true;
+  state.coins++;
+  updateCoinHud();
+  // Spawn a little "popped coin" visual using the coins array with a short pop animation.
+  coins.push({
+    x: block.x + block.w/2, offset: block.offset + block.h + 4,
+    r:12, collected:false, phase:0, pop:true, popTimer: 40
+  });
+}
+
+function updateCoinHud(){
+  document.getElementById('coin-count').textContent = 'COINS: ' + state.coins;
+}
+
+function updateSlimes(){
+  slimes.forEach(sl=>{
+    if (!sl.alive) return;
+    sl.x += sl.vx;
+    if (sl.x > sl.maxX){ sl.x = sl.maxX; sl.vx *= -1; }
+    if (sl.x < sl.minX){ sl.x = sl.minX; sl.vx *= -1; }
+  });
+}
+
+function updatePoppedCoins(){
+  coins.forEach(c=>{
+    if (c.pop && c.popTimer > 0){
+      c.popTimer--;
+      c.offset += 1.4; // float upward briefly
+      if (c.popTimer === 0) c.collected = true; // fade the pop coin away
+    }
+  });
+}
+
+/* ----------------------------- BILLBOARD PANEL LOGIC ----------------------------- */
+const panelEl = document.getElementById('billboard-panel');
+function updateBillboardPanel(){
+  let closest = null, closestDist = Infinity;
+  billboards.forEach(b=>{
+    const d = Math.abs((player.x+player.w/2) - b.x);
+    if (d < BOARD_TRIGGER_RADIUS && d < closestDist){
+      closest = b; closestDist = d;
+    }
+  });
+  const newId = closest ? closest.id : null;
+  if (newId !== state.activeBoardId){
+    state.activeBoardId = newId;
+    if (newId){
+      panelEl.innerHTML = boardContent[newId];
+      panelEl.classList.add('visible');
+    } else {
+      panelEl.classList.remove('visible');
+    }
+  }
+}
+
+/* ----------------------------- GAME FLOW ----------------------------- */
+function endGame(reason){
+  if (state.mode !== 'playing') return;
+  state.mode = 'gameover';
+  document.getElementById('gameover-reason').textContent = reason;
+  document.getElementById('gameover-coins').textContent = 'COINS COLLECTED: ' + state.coins;
+  document.getElementById('gameover-overlay').classList.remove('hidden');
+}
+
+function winGame(){
+  if (state.mode !== 'playing') return;
+  state.mode = 'victory';
+  document.getElementById('victory-coins').textContent = 'COINS COLLECTED: ' + state.coins;
+  document.getElementById('victory-overlay').classList.remove('hidden');
+  launchConfetti();
+}
+
+function startGame(){
+  state.mode = 'playing';
+  state.coins = 0;
+  state.cameraX = 0;
+  state.activeBoardId = null;
+  updateCoinHud();
+  panelEl.classList.remove('visible');
+  blocks.forEach(b=> b.hit = false);
+  coins.length = 0;
+  seedCoins();
+  slimes.forEach((sl, i)=>{ sl.alive = true; });
+  resetPlayer();
+  document.getElementById('start-overlay').classList.add('hidden');
+  document.getElementById('gameover-overlay').classList.add('hidden');
+  document.getElementById('victory-overlay').classList.add('hidden');
+}
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('restart-btn').addEventListener('click', startGame);
+document.getElementById('victory-restart-btn').addEventListener('click', startGame);
+document.getElementById('victory-contact-btn').addEventListener('click', ()=>{
+  window.location.href = 'mailto:ayushverma30112007@gmail.com';
+});
+
+/* ----------------------------- CONFETTI ----------------------------- */
+function launchConfetti(){
+  const container = document.getElementById('confetti-container');
+  const colors = ['#ffd23f','#ff5da2','#a45bff','#3ddc84','#4EC0FF'];
+  for (let i=0; i<90; i++){
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.left = Math.random()*100 + 'vw';
+    el.style.background = colors[Math.floor(Math.random()*colors.length)];
+    el.style.animationDuration = (2.2 + Math.random()*1.8) + 's';
+    el.style.animationDelay = (Math.random()*0.6) + 's';
+    el.style.transform = `rotate(${Math.random()*360}deg)`;
+    container.appendChild(el);
+    setTimeout(()=> el.remove(), 5000);
+  }
+}
+
+/* ======================================================================
+   RENDERING
+   ====================================================================== */
+
+function worldToScreenX(wx){ return wx - state.cameraX; }
+
+function drawBackground(){
+  // Sky gradient already set via CSS on canvas background; draw parallax clouds & hills here.
+  const camX = state.cameraX;
+
+  // --- Pixelated clouds (parallax factor 0.25) ---
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  const cloudSpots = [200, 900, 1700, 2500, 3300, 4100, 4900, 5700, 6300];
+  cloudSpots.forEach((cx,i)=>{
+    const sx = (cx - camX*0.25) % (WORLD_WIDTH+800);
+    const sy = 70 + (i%3)*40;
+    drawPixelCloud(sx, sy);
+  });
+
+  // --- Distant hills (parallax factor 0.5) ---
+  const hillColors = ['#37c56b','#2fae5c'];
+  const hillSpots = [100, 700, 1400, 2100, 2800, 3500, 4200, 4900, 5600, 6300];
+  hillSpots.forEach((hx,i)=>{
+    const sx = worldToScreenX(hx) - camX*0.25; // extra parallax lag
+    const sx2 = hx - camX*0.55;
+    ctx.fillStyle = hillColors[i%2];
+    const baseY = state.groundY;
+    ctx.beginPath();
+    ctx.arc(sx2, baseY+30, 90, Math.PI, 0);
+    ctx.fill();
+  });
+}
+
+function drawPixelCloud(x,y){
+  ctx.fillRect(x, y, 48, 16);
+  ctx.fillRect(x+12, y-12, 40, 16);
+  ctx.fillRect(x+36, y, 32, 16);
+  ctx.fillRect(x-8, y+8, 60, 12);
+}
+
+function drawGround(){
+  groundSegments.forEach(seg=>{
+    const sx = worldToScreenX(seg.x);
+    if (sx + seg.w < -50 || sx > canvas.width+50) return;
+    // Grass cap
+    ctx.fillStyle = '#3ddc84';
+    ctx.fillRect(sx, state.groundY, seg.w, 14);
+    ctx.fillStyle = '#2fae5c';
+    ctx.fillRect(sx, state.groundY+14, seg.w, 6);
+    // Dirt tiles beneath, textured with alternating shade
+    for (let tx = 0; tx < seg.w; tx += TILE){
+      for (let ty = 20; ty < canvas.height - state.groundY + 40; ty += TILE){
+        const shade = ((Math.floor((seg.x+tx)/TILE) + Math.floor(ty/TILE)) % 2 === 0) ? '#8a5a2b' : '#7a4a20';
+        ctx.fillStyle = shade;
+        ctx.fillRect(sx+tx, state.groundY+ty, TILE, TILE);
+      }
+    }
+  });
+
+  // Staircase bricks leading to the flag
+  staircase.forEach(s=>{
+    const sx = worldToScreenX(s.x);
+    const sy = state.groundY - s.offset - s.h + 300;
+    ctx.fillStyle = '#c96a3a';
+    ctx.fillRect(sx, sy, s.w, s.h);
+    ctx.strokeStyle = '#7a3313';
+    ctx.lineWidth = 2;
+    for (let i=0;i<s.w;i+=16) ctx.strokeRect(sx+i, sy, 16, 16);
+  });
+
+  // Pit danger stripes at the edges of gaps (visual cue)
+  for (let i=1;i<groundSegments.length;i++){
+    const prevEnd = groundSegments[i-1].x + groundSegments[i-1].w;
+    const nextStart = groundSegments[i].x;
+    if (nextStart > prevEnd){
+      const sx = worldToScreenX(prevEnd);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(sx, state.groundY - 4, nextStart-prevEnd, 4);
+    }
+  }
+}
+
+function drawBlocks(){
+  blocks.forEach(b=>{
+    const sx = worldToScreenX(b.x);
+    if (sx + b.w < -20 || sx > canvas.width+20) return;
+    const sy = state.groundY - b.offset - b.h;
+    if (b.hit){
+      ctx.fillStyle = '#8a5a2b';
+      ctx.fillRect(sx, sy, b.w, b.h);
+      ctx.strokeStyle = '#5c3620';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(sx, sy, b.w, b.h);
+    } else {
+      ctx.fillStyle = '#ffb23f';
+      ctx.fillRect(sx, sy, b.w, b.h);
+      ctx.strokeStyle = '#a9600a';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(sx+1.5, sy+1.5, b.w-3, b.h-3);
+      // bobbing "?" mark
+      ctx.fillStyle = '#fff8e0';
+      ctx.font = 'bold 22px "Press Start 2P", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('?', sx + b.w/2, sy + b.h/2 + 8 + Math.sin(state.time*0.005 + b.x)*2);
+    }
+  });
+}
+
+function drawCoins(){
+  coins.forEach(c=>{
+    if (c.collected) return;
+    const sx = worldToScreenX(c.x);
+    if (sx < -30 || sx > canvas.width+30) return;
+    const bounce = c.pop ? 0 : Math.sin(state.time*0.006 + c.phase)*6;
+    const sy = state.groundY - c.offset - 10 + bounce;
+    const squish = Math.max(0.3, Math.abs(Math.cos(state.time*0.004 + c.phase)));
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.scale(squish, 1);
+    ctx.fillStyle = '#ffd23f';
+    ctx.beginPath();
+    ctx.arc(0,0,c.r,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#a97400';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.restore();
+  });
+}
+
+function drawSlimes(){
+  slimes.forEach(sl=>{
+    if (!sl.alive) return;
+    const sx = worldToScreenX(sl.x);
+    if (sx < -40 || sx > canvas.width+40) return;
+    const sy = state.groundY - sl.r + Math.sin(state.time*0.01 + sl.x)*2;
+    const grad = ctx.createRadialGradient(sx-4, sy-4, 2, sx, sy, sl.r);
+    grad.addColorStop(0, '#ffb3e6');
+    grad.addColorStop(1, sl.x % 200 < 100 ? '#ff5da2' : '#a45bff');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, sl.r, sl.r*0.85, 0, 0, Math.PI*2);
+    ctx.fill();
+    // eyes
+    ctx.fillStyle = '#1c1330';
+    const dir = sl.vx > 0 ? 1 : -1;
+    ctx.beginPath();
+    ctx.arc(sx+dir*5, sy-3, 2.4, 0, Math.PI*2);
+    ctx.arc(sx+dir*10, sy-3, 2.4, 0, Math.PI*2);
+    ctx.fill();
+  });
+}
+
+function drawBillboards(){
+  billboards.forEach(b=>{
+    const sx = worldToScreenX(b.x);
+    if (sx < -140 || sx > canvas.width+140) return;
+    const postW = 14, postH = 150;
+    const postX = sx - postW/2;
+    const postY = state.groundY - postH;
+    // wooden post
+    ctx.fillStyle = '#6b4326';
+    ctx.fillRect(postX, postY, postW, postH);
+    // sign board
+    const boardW = 190, boardH = 92;
+    const boardX = sx - boardW/2;
+    const boardY = postY - boardH + 20;
+    const active = state.activeBoardId === b.id;
+    ctx.fillStyle = active ? '#3a2416' : '#4a2c16';
+    ctx.strokeStyle = b.color;
+    ctx.lineWidth = active ? 6 : 4;
+    ctx.fillRect(boardX, boardY, boardW, boardH);
+    ctx.strokeRect(boardX, boardY, boardW, boardH);
+    // icon + label
+    ctx.textAlign = 'center';
+    ctx.font = '26px sans-serif';
+    ctx.fillText(b.icon, sx, boardY + 40);
+    ctx.font = '10px "Press Start 2P", monospace';
+    ctx.fillStyle = '#fff6e0';
+    ctx.fillText(b.label, sx, boardY + 72);
+    if (!active){
+      ctx.font = '8px "Press Start 2P", monospace';
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.fillText('walk closer', sx, boardY + boardH + 16);
+    }
+  });
+}
+
+function drawFlagpole(){
+  const sx = worldToScreenX(flagpole.x);
+  if (sx < -60 || sx > canvas.width+60) return;
+  const baseY = state.groundY;
+  ctx.fillStyle = '#c0c0c0';
+  ctx.fillRect(sx-3, baseY - flagpole.h, 6, flagpole.h);
+  ctx.fillStyle = '#ffd23f';
+  ctx.beginPath();
+  ctx.arc(sx, baseY - flagpole.h, 8, 0, Math.PI*2);
+  ctx.fill();
+  // waving flag
+  const wave = Math.sin(state.time*0.006)*6;
+  ctx.fillStyle = state.mode === 'victory' ? '#3ddc84' : '#ff5da2';
+  ctx.beginPath();
+  ctx.moveTo(sx+3, baseY - flagpole.h + 14);
+  ctx.lineTo(sx+3+34+wave, baseY - flagpole.h + 24);
+  ctx.lineTo(sx+3, baseY - flagpole.h + 34);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawPlayer(){
+  const sx = worldToScreenX(player.x);
+  const sy = player.y;
+  ctx.save();
+  ctx.translate(sx + player.w/2, sy + player.h/2);
+  if (player.spinTimer > 0){
+    const progress = 1 - (player.spinTimer / player.spinDuration);
+    ctx.rotate(progress * Math.PI * 2 * player.facing);
+  }
+  ctx.translate(-(sx + player.w/2), -(sy + player.h/2));
+  ctx.translate(sx + player.w/2, 0);
+  ctx.scale(player.facing, 1);
+  ctx.translate(-player.w/2, 0);
+
+  const legLift = (player.animFrame === 1 && player.onGround) ? 4 : 0;
+
+  // legs
+  ctx.fillStyle = '#2b3a67';
+  ctx.fillRect(6, sy+34, 9, 12-legLift);
+  ctx.fillRect(19, sy+34, 9, 12+legLift* (player.onGround?1:0));
+  // torso
+  ctx.fillStyle = '#ff5da2';
+  ctx.fillRect(4, sy+16, 26, 20);
+  // arm
+  ctx.fillStyle = '#ffd23f';
+  ctx.fillRect(24, sy+18, 8, 12);
+  // head
+  ctx.fillStyle = '#ffcf9e';
+  ctx.fillRect(6, sy, 22, 18);
+  // cap
+  ctx.fillStyle = '#a45bff';
+  ctx.fillRect(4, sy-6, 26, 8);
+  ctx.fillRect(24, sy-2, 10, 5);
+  // eye
+  ctx.fillStyle = '#1c1330';
+  ctx.fillRect(20, sy+7, 4, 4);
+
+  ctx.restore();
+}
+
+/* ----------------------------- MAIN LOOP ----------------------------- */
+let lastTime = 0;
+function loop(ts){
+  const dt = ts - lastTime;
+  lastTime = ts;
+  state.time = ts;
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawBackground();
+
+  if (state.mode === 'playing'){
+    updatePlayer();
+    updateSlimes();
+    updatePoppedCoins();
+  }
+
+  drawGround();
+  drawBillboards();
+  drawBlocks();
+  drawCoins();
+  drawSlimes();
+  drawFlagpole();
+  drawPlayer();
+
+  requestAnimationFrame(loop);
+}
+
+/* ----------------------------- INIT ----------------------------- */
+resizeCanvas();
+resetPlayer();
+requestAnimationFrame(loop);
+</script>
+
+
+</body></html>
